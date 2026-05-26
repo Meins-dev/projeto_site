@@ -4,1035 +4,28 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NovaShop - Ofertas Imperdiveis</title>
-2026-04-05 15:41:03.320 [info] Resolved Python Environment /usr/bin/python
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-      body {
-        font-family:
-          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        color: #1a1a2e;
-        background: #f5f5f5;
-      }
-
-      /* Navbar */
-      nav {
-        position: fixed;
-        top: 0;
-        width: 100%;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem 2rem;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        z-index: 100;
-      }
-      .logo {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #e63946;
-        text-decoration: none;
-      }
-      .nav-links {
-        display: flex;
-        list-style: none;
-        gap: 2rem;
-        align-items: center;
-      }
-      .nav-links a {
-        text-decoration: none;
-        color: #1a1a2e;
-        font-weight: 500;
-      }
-      .nav-links a:hover {
-        color: #e63946;
-      }
-      .search-box {
-        display: flex;
-        align-items: center;
-        background: #f0f0f0;
-        border-radius: 25px;
-        padding: 0.4rem 1rem;
-        gap: 0.5rem;
-      }
-      .search-box input {
-        border: none;
-        background: transparent;
-        outline: none;
-        font-size: 0.9rem;
-        width: 200px;
-      }
-      .cart-btn {
-        position: relative;
-        padding: 0.5rem 1.25rem;
-        background: #e63946;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 1rem;
-      }
-      .cart-btn:hover {
-        background: #c1303b;
-      }
-      .cart-count {
-        position: absolute;
-        top: -6px;
-        right: -6px;
-        background: #1d3557;
-        color: #fff;
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.75rem;
-        font-weight: 700;
-      }
-
-      /* Hero */
-      .hero {
-        min-height: 60vh;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        padding: 8rem 2rem 3rem;
-        background: linear-gradient(135deg, #fff5f5 0%, #fce4e4 100%);
-      }
-      .hero h1 {
-        font-size: 3rem;
-        font-weight: 800;
-        margin-bottom: 1rem;
-      }
-      .hero h1 span {
-        color: #e63946;
-      }
-      .hero p {
-        font-size: 1.2rem;
-        color: #555;
-        max-width: 550px;
-        line-height: 1.6;
-      }
-      .hero-stats {
-        display: flex;
-        gap: 3rem;
-        margin-top: 2.5rem;
-      }
-      .hero-stat {
-        text-align: center;
-      }
-      .hero-stat strong {
-        display: block;
-        font-size: 1.5rem;
-        color: #e63946;
-      }
-      .hero-stat small {
-        color: #888;
-        font-size: 0.85rem;
-      }
-
-      .learning-section {
-        padding: 2rem 1.5rem;
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-      .learning-card {
-        display: grid;
-        grid-template-columns: 1.5fr 1fr;
-        gap: 1.5rem;
-        background: #fff;
-        border-radius: 20px;
-        padding: 1.75rem;
-        box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
-      }
-      .learning-card h2 {
-        font-size: 2rem;
-        margin-bottom: 0.75rem;
-      }
-      .learning-card p {
-        color: #555;
-        line-height: 1.75;
-        margin-bottom: 1.25rem;
-      }
-      .learning-block {
-        background: #f8f8ff;
-        border-radius: 16px;
-        padding: 1rem;
-        border: 1px solid #e2e8f0;
-      }
-      .learning-block h3 {
-        margin-bottom: 0.8rem;
-        font-size: 1rem;
-      }
-      .learning-block p {
-        margin-bottom: 1rem;
-      }
-      .learning-block button,
-      .primary-btn,
-      .secondary-btn {
-        padding: 0.75rem 1rem;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        font-weight: 700;
-        transition: background 0.2s ease;
-      }
-      .primary-btn {
-        background: #e63946;
-        color: #fff;
-      }
-      .primary-btn:hover {
-        background: #c1303b;
-      }
-      .secondary-btn {
-        background: #4361ee;
-        color: #fff;
-      }
-      .secondary-btn:hover {
-        background: #3656c8;
-      }
-      .quiz-card {
-        margin-top: 1rem;
-      }
-      .quiz-question {
-        font-weight: 700;
-        margin-bottom: 1rem;
-      }
-      .quiz-options {
-        display: grid;
-        gap: 0.75rem;
-      }
-      .quiz-option {
-        padding: 0.9rem 1rem;
-        border: 1px solid #ddd;
-        border-radius: 12px;
-        background: #fff;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-      .quiz-option:hover {
-        border-color: #4361ee;
-        background: #f0f4ff;
-      }
-      .quiz-option.selected {
-        border-color: #e63946;
-        background: #fff0f2;
-      }
-      .quiz-feedback {
-        margin-top: 1rem;
-        padding: 1rem;
-        border-radius: 12px;
-        background: #f0f4ff;
-        color: #1d3557;
-      }
-      .quiz-feedback.correct {
-        background: #e7f8f3;
-        color: #1b5e3c;
-      }
-      .quiz-feedback.incorrect {
-        background: #ffe7e7;
-        color: #7d1f22;
-      }
-
-      /* Banner urgencia */
-      .urgency-banner {
-        background: #1d3557;
-        color: #fff;
-        text-align: center;
-        padding: 0.75rem;
-        font-weight: 600;
-        font-size: 0.95rem;
-        margin-top: 60px;
-      }
-      .urgency-banner span {
-        color: #f4a261;
-      }
-      #countdown {
-        font-variant-numeric: tabular-nums;
-      }
-
-      /* Categorias */
-      .categories {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        padding: 2rem;
-        flex-wrap: wrap;
-      }
-      .cat-btn {
-        padding: 0.5rem 1.5rem;
-        border: 2px solid #ddd;
-        border-radius: 25px;
-        background: #fff;
-        cursor: pointer;
-        font-weight: 500;
-        font-size: 0.9rem;
-        transition: all 0.2s;
-      }
-      .cat-btn:hover,
-      .cat-btn.active {
-        border-color: #e63946;
-        color: #e63946;
-        background: #fff5f5;
-      }
-
-      /* Produtos */
-      .products-section {
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-      .products-section h2 {
-        text-align: center;
-        margin-bottom: 0.5rem;
-        font-size: 2rem;
-      }
-      .products-section .subtitle {
-        text-align: center;
-        color: #888;
-        margin-bottom: 2rem;
-      }
-      .sort-bar {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-        font-size: 0.9rem;
-        color: #666;
-      }
-      .sort-bar select {
-        padding: 0.4rem 0.8rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 0.9rem;
-        cursor: pointer;
-      }
-      .product-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 2rem;
-      }
-      .product-card {
-        background: #fff;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        transition:
-          transform 0.2s,
-          box-shadow 0.2s;
-      }
-      .product-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-      }
-      .product-card {
-        position: relative;
-      }
-      .product-badges {
-        position: absolute;
-        top: 0.75rem;
-        left: 0.75rem;
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-        z-index: 5;
-      }
-      .badge {
-        padding: 0.2rem 0.6rem;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: 700;
-      }
-      .badge-discount {
-        background: #e63946;
-        color: #fff;
-      }
-      .badge-tag {
-        background: #1d3557;
-        color: #fff;
-      }
-      .product-img {
-        width: 100%;
-        height: 220px;
-        background: #f8f8f8;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 4rem;
-        color: #ccc;
-      }
-      .product-info {
-        padding: 1.25rem;
-      }
-      .product-category {
-        font-size: 0.75rem;
-        color: #888;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-      }
-      .product-name {
-        font-size: 1.1rem;
-        font-weight: 700;
-        margin: 0.3rem 0;
-      }
-      .product-desc {
-        font-size: 0.85rem;
-        color: #666;
-        margin-bottom: 0.5rem;
-        line-height: 1.4;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      .product-rating {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        margin-bottom: 0.5rem;
-      }
-      .stars {
-        color: #f4a261;
-        font-size: 0.9rem;
-      }
-      .rating-text {
-        font-size: 0.8rem;
-        color: #888;
-      }
-      .product-pricing {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-bottom: 0.3rem;
-        flex-wrap: wrap;
-      }
-      .product-price {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: #e63946;
-      }
-      .product-original {
-        font-size: 0.95rem;
-        color: #999;
-        text-decoration: line-through;
-      }
-      .product-installment {
-        font-size: 0.8rem;
-        color: #2a9d8f;
-        margin-bottom: 0.75rem;
-      }
-      .product-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      .product-sold {
-        font-size: 0.8rem;
-        color: #888;
-      }
-      .stock-bar {
-        height: 4px;
-        background: #eee;
-        border-radius: 2px;
-        margin-bottom: 0.3rem;
-      }
-      .stock-fill {
-        height: 100%;
-        border-radius: 2px;
-        transition: width 0.3s;
-      }
-      .stock-text {
-        font-size: 0.75rem;
-        margin-bottom: 0.5rem;
-      }
-      .stock-low {
-        color: #e63946;
-        font-weight: 600;
-      }
-      .stock-ok {
-        color: #2a9d8f;
-      }
-      .add-cart-btn {
-        padding: 0.5rem 1.25rem;
-        background: #4361ee;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.2s;
-        font-size: 0.9rem;
-      }
-      .add-cart-btn:hover {
-        background: #3a56d4;
-      }
-      .add-cart-btn:active {
-        transform: scale(0.96);
-      }
-
-      /* Carrinho */
-      .cart-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 200;
-        justify-content: flex-end;
-      }
-      .cart-overlay.open {
-        display: flex;
-      }
-      .cart-panel {
-        width: 450px;
-        max-width: 95vw;
-        background: #fff;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        animation: slideIn 0.3s ease;
-      }
-      @keyframes slideIn {
-        from {
-          transform: translateX(100%);
-        }
-        to {
-          transform: translateX(0);
-        }
-      }
-      .cart-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1.5rem;
-        border-bottom: 1px solid #eee;
-      }
-      .cart-header h3 {
-        font-size: 1.25rem;
-      }
-      .cart-close {
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-        padding: 0.5rem;
-      }
-      .cart-items {
-        flex: 1;
-        overflow-y: auto;
-        padding: 0.5rem 1rem;
-      }
-      .cart-item {
-        display: flex;
-        gap: 1rem;
-        padding: 1rem 0;
-        border-bottom: 1px solid #f0f0f0;
-        align-items: center;
-      }
-      .cart-item-img {
-        width: 60px;
-        height: 60px;
-        border-radius: 8px;
-        background: #f8f8f8;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.8rem;
-        flex-shrink: 0;
-      }
-      .cart-item-info {
-        flex: 1;
-        min-width: 0;
-      }
-      .cart-item-name {
-        font-weight: 600;
-        font-size: 0.9rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .cart-item-price {
-        color: #e63946;
-        font-weight: 700;
-        font-size: 0.95rem;
-      }
-      .cart-item-qty {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 0.4rem;
-      }
-      .qty-btn {
-        width: 28px;
-        height: 28px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        background: #fff;
-        cursor: pointer;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1rem;
-      }
-      .qty-btn:hover {
-        background: #f0f0f0;
-      }
-      .cart-item-remove {
-        background: none;
-        border: none;
-        color: #ccc;
-        cursor: pointer;
-        font-size: 1.3rem;
-        padding: 0.5rem;
-      }
-      .cart-item-remove:hover {
-        color: #e63946;
-      }
-
-      /* Carrinho - resumo de custos */
-      .cart-summary {
-        padding: 1rem 1.5rem;
-        border-top: 1px solid #eee;
-      }
-      .summary-row {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.9rem;
-        margin-bottom: 0.5rem;
-        color: #555;
-      }
-      .summary-row.discount {
-        color: #2a9d8f;
-      }
-      .summary-row.total {
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: #1a1a2e;
-        border-top: 1px solid #eee;
-        padding-top: 0.75rem;
-        margin-top: 0.5rem;
-      }
-
-      /* Cupom no carrinho */
-      .coupon-section {
-        padding: 0.75rem 1.5rem;
-        border-top: 1px solid #eee;
-      }
-      .coupon-row {
-        display: flex;
-        gap: 0.5rem;
-      }
-      .coupon-row input {
-        flex: 1;
-        padding: 0.6rem 0.8rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-      }
-      .coupon-row input:focus {
-        outline: none;
-        border-color: #4361ee;
-      }
-      .coupon-apply {
-        padding: 0.6rem 1rem;
-        background: #1d3557;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .coupon-apply:hover {
-        background: #172b47;
-      }
-      .coupon-msg {
-        font-size: 0.8rem;
-        margin-top: 0.4rem;
-      }
-      .coupon-msg.success {
-        color: #2a9d8f;
-      }
-      .coupon-msg.error {
-        color: #e63946;
-      }
-      .coupon-applied {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: #f0faf7;
-        padding: 0.5rem 0.8rem;
-        border-radius: 6px;
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-      }
-      .coupon-remove {
-        background: none;
-        border: none;
-        color: #e63946;
-        cursor: pointer;
-        font-weight: 700;
-      }
-
-      /* Frete no carrinho */
-      .shipping-section {
-        padding: 0.5rem 1.5rem;
-        border-top: 1px solid #eee;
-      }
-      .shipping-row {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        margin-bottom: 0.5rem;
-      }
-      .shipping-row input {
-        flex: 1;
-        padding: 0.5rem 0.7rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 0.85rem;
-      }
-      .shipping-calc {
-        padding: 0.5rem 0.8rem;
-        background: #1d3557;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        cursor: pointer;
-      }
-      .shipping-result {
-        font-size: 0.85rem;
-        color: #555;
-      }
-      .shipping-free {
-        color: #2a9d8f;
-        font-weight: 700;
-      }
-
-      /* Checkout footer */
-      .cart-footer {
-        padding: 1.5rem;
-        border-top: 1px solid #eee;
-      }
-      .checkout-btn {
-        width: 100%;
-        padding: 1rem;
-        background: #e63946;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        font-size: 1.1rem;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .checkout-btn:hover {
-        background: #c1303b;
-      }
-      .checkout-btn:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-      }
-      .cart-empty {
-        text-align: center;
-        padding: 3rem;
-        color: #888;
-      }
-
-      /* Checkout Modal */
-      .modal-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: 300;
-        align-items: center;
-        justify-content: center;
-        padding: 1rem;
-      }
-      .modal-overlay.open {
-        display: flex;
-      }
-      .modal {
-        background: #fff;
-        border-radius: 12px;
-        max-width: 520px;
-        width: 100%;
-        max-height: 90vh;
-        overflow-y: auto;
-      }
-      .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1.5rem;
-        border-bottom: 1px solid #eee;
-      }
-      .modal-header h2 {
-        font-size: 1.25rem;
-      }
-      .modal-close {
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-      }
-      .modal-body {
-        padding: 1.5rem;
-      }
-      .modal-body h3 {
-        font-size: 1rem;
-        margin-bottom: 1rem;
-        color: #1d3557;
-      }
-
-      .form-group {
-        margin-bottom: 1rem;
-      }
-      .form-group label {
-        display: block;
-        margin-bottom: 0.3rem;
-        font-weight: 600;
-        font-size: 0.85rem;
-      }
-      .form-group input {
-        width: 100%;
-        padding: 0.7rem;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 0.95rem;
-      }
-      .form-group input:focus {
-        outline: none;
-        border-color: #4361ee;
-        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-      }
-      .form-row {
-        display: flex;
-        gap: 1rem;
-      }
-      .form-row .form-group {
-        flex: 1;
-      }
-
-      /* Payment options */
-      .payment-options {
-        display: flex;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-      }
-      .payment-option {
-        flex: 1;
-        padding: 1rem;
-        border: 2px solid #ddd;
-        border-radius: 8px;
-        text-align: center;
-        cursor: pointer;
-        transition: all 0.2s;
-      }
-      .payment-option:hover {
-        border-color: #4361ee;
-      }
-      .payment-option.selected {
-        border-color: #4361ee;
-        background: #f8f9ff;
-      }
-      .payment-option .icon {
-        font-size: 1.5rem;
-        margin-bottom: 0.3rem;
-      }
-      .payment-option .label {
-        font-size: 0.85rem;
-        font-weight: 600;
-      }
-
-      /* PIX display */
-      .pix-display {
-        background: #f8f9ff;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 1.5rem;
-        text-align: center;
-        margin-bottom: 1rem;
-      }
-      .pix-qr {
-        width: 180px;
-        height: 180px;
-        background: #fff;
-        margin: 0 auto 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 4rem;
-        border: 1px solid #eee;
-        border-radius: 8px;
-      }
-      .pix-code-box {
-        background: #fff;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        padding: 0.75rem;
-        font-family: monospace;
-        font-size: 0.75rem;
-        word-break: break-all;
-        margin-bottom: 0.75rem;
-        text-align: left;
-      }
-      .pix-copy {
-        padding: 0.5rem 1.5rem;
-        background: #4361ee;
-        color: #fff;
-        border: none;
-        border-radius: 6px;
-        font-weight: 600;
-        cursor: pointer;
-        font-size: 0.9rem;
-      }
-      .pix-timer {
-        font-size: 0.85rem;
-        color: #e63946;
-        margin-top: 0.5rem;
-      }
-
-      /* Order summary in checkout */
-      .order-summary {
-        background: #f8f8f8;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1.5rem;
-      }
-      .order-summary h4 {
-        margin-bottom: 0.75rem;
-        font-size: 0.9rem;
-      }
-      .order-item {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.85rem;
-        padding: 0.3rem 0;
-      }
-      .order-divider {
-        border-top: 1px solid #ddd;
-        margin: 0.5rem 0;
-      }
-
-      .modal-actions {
-        display: flex;
-        gap: 1rem;
-        margin-top: 1rem;
-      }
-      .cancel-btn {
-        flex: 1;
-        padding: 0.8rem;
-        border: 1px solid #ddd;
-        background: #fff;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.95rem;
-      }
-      .confirm-btn {
-        flex: 1;
-        padding: 0.8rem;
-        border: none;
-        background: #2a9d8f;
-        color: #fff;
-        border-radius: 8px;
-        cursor: pointer;
-        font-weight: 700;
-        font-size: 0.95rem;
-      }
-      .confirm-btn:hover {
-        background: #238b7e;
-      }
-      .success-msg {
-        text-align: center;
-        padding: 2rem;
-        display: none;
-      }
-      .success-msg .check {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-      }
-      .success-msg h2 {
-        color: #2a9d8f;
-        margin-bottom: 0.5rem;
-      }
-      .success-msg .order-id {
-        font-size: 1.1rem;
-        color: #1d3557;
-        font-weight: 700;
-      }
-
-      /* Toast */
-      .toast {
-        position: fixed;
-        bottom: 2rem;
-        left: 50%;
-        transform: translateX(-50%) translateY(100px);
-        background: #1d3557;
-        color: #fff;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 600;
-        z-index: 400;
-        transition: transform 0.3s ease;
-      }
-      .toast.show {
-        transform: translateX(-50%) translateY(0);
-      }
-
-      @media (max-width: 768px) {
-        .nav-links {
-          display: none;
-        }
-        .search-box {
-          display: none;
-        }
-        .hero h1 {
-          font-size: 2rem;
-        }
-        .hero-stats {
-          gap: 1.5rem;
-        }
-        .product-grid {
-          grid-template-columns: 1fr;
-        }
-        .payment-options {
-          flex-direction: column;
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css" />
   </head>
-  <body>
+  <body data-theme="dark">
     <nav>
-      <a href="#" class="logo">NovaShop</a>
+      <a href="#home" class="logo">
+        <img src="logo.svg" alt="NovaShop" />
+        <span>NovaShop</span>
+      </a>
       <ul class="nav-links">
-        <li><a href="#products">Produtos</a></li>
-        <li><a href="#learning">Estudos</a></li>
+        <li><a href="#home">Inicio</a></li>
+        <li><a href="#products">Shop</a></li>
+        <li><a href="#about">Sobre</a></li>
+        <li><a href="#forum">Forum</a></li>
+        <li><a href="#members">Membros</a></li>
+        <li><a href="#contact">Contato</a></li>
       </ul>
       <div class="search-box">
         <span>&#128269;</span>
         <input type="text" id="searchInput" placeholder="Buscar produtos..." />
       </div>
+      <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema">☀️</button>
+      <button class="account-btn" id="accountBtn">Entrar</button>
       <button class="cart-btn" id="openCart">
         Carrinho
         <span class="cart-count" id="cartCount">0</span>
@@ -1044,48 +37,24 @@
       <span>FRETE GRATIS</span> acima de R$ 199
     </div>
 
-    <section class="hero">
+    <section class="hero" id="home">
       <h1>As melhores <span>ofertas</span> da internet</h1>
       <p>
-        Produtos selecionados com ate 70% de desconto diretamente dos melhores
-        fornecedores globais.
+        Produtos selecionados com ate 70% de desconto, entrega rapida e experiencia premium para sua compra.
       </p>
+      <div class="hero-actions">
+        <button class="primary-btn" id="shopNowBtn">Ver Shop</button>
+        <button class="secondary-btn" id="accountHeroBtn">Minha conta</button>
+      </div>
       <div class="hero-stats">
         <div class="hero-stat">
           <strong>200+</strong><small>Produtos</small>
         </div>
         <div class="hero-stat">
-          <strong>50k+</strong><small>Clientes</small>
+          <strong>50k+</strong><small>Clientes satisfeitos</small>
         </div>
         <div class="hero-stat">
-          <strong>4.6</strong><small>Nota media</small>
-        </div>
-      </div>
-    </section>
-
-    <section class="learning-section" id="learning">
-      <div class="learning-card">
-        <div>
-          <h2>Estudos de Programação Interativos</h2>
-          <p>
-            Pratique lógica, HTML, Git e boas práticas enquanto navega no site.
-            Responda ao desafio comum do dia e receba uma dica útil para seus estudos.
-          </p>
-          <div class="learning-block">
-            <h3>Desafio do Dia</h3>
-            <div id="quizArea">
-              <p class="quiz-question" id="quizQuestion">Clique em carregar para ver o próximo desafio.</p>
-              <div class="quiz-options" id="quizOptions"></div>
-              <button class="primary-btn" id="loadQuizBtn">Carregar Desafio</button>
-              <button class="secondary-btn" id="submitQuizBtn" style="display:none; margin-top:0.75rem;">Enviar Resposta</button>
-              <div class="quiz-feedback" id="quizFeedback" style="display:none;"></div>
-            </div>
-          </div>
-        </div>
-        <div class="learning-block">
-          <h3>Dica de Estudo</h3>
-          <p id="learningTip">Carregando dica...</p>
-          <button class="secondary-btn" id="newTipBtn">Nova Dica</button>
+          <strong>4.9</strong><small>Nota media</small>
         </div>
       </div>
     </section>
@@ -1095,8 +64,9 @@
     </div>
 
     <section class="products-section" id="products">
-      <h2>Produtos em Destaque</h2>
-      <p class="subtitle">Selecionados especialmente para voce</p>
+      <div class="section-title">Produtos em Destaque</div>
+      <h2>Ofertas selecionadas para voce</h2>
+      <p class="subtitle">Encontramos os melhores descontos e novas chegadas para voce.</p>
       <div class="sort-bar">
         <span>Ordenar por:</span>
         <select id="sortSelect">
@@ -1114,11 +84,109 @@
       </div>
     </section>
 
+    <section class="info-section" id="about">
+      <div class="section-title">Sobre</div>
+      <h2>Conheça nossa loja</h2>
+      <p>
+        NovaShop nasceu para trazer ofertas selecionadas com frete rapido e experiência intuitiva.
+        Aqui voce encontra produtos em destaque e um checkout seguro, agora restrito a clientes cadastrados.
+      </p>
+    </section>
+
+    <section class="info-section" id="forum">
+      <div class="section-title">Forum</div>
+      <h2>Comunidade e suporte</h2>
+      <p>
+        Em breve voce podera compartilhar dicas, avaliações e dúvidas em nossa área de discussão.
+        Acompanhe atualizações exclusivas para membros registrados.
+      </p>
+    </section>
+
+    <section class="info-section" id="members">
+      <div class="section-title">Membros</div>
+      <h2>Benefícios exclusivos</h2>
+      <p>
+        Cadastre-se para receber notificações de lançamentos, promoções VIP e resultados de pedidos direto no seu e-mail.
+        Sua conta garante acesso rápido ao checkout e histórico de compras.
+      </p>
+    </section>
+
+    <section class="info-section" id="contact">
+      <div class="section-title">Contato</div>
+      <h2>Fale conosco</h2>
+      <p>
+        Precisa de ajuda? Envie um e-mail para suporte@novashop.com.br ou utilize nosso formulário de contato para atendimento rapido.
+      </p>
+    </section>
+
+    <div class="modal-overlay" id="authModal">
+      <div class="modal">
+        <div class="modal-header">
+          <div>
+            <h2>Minha Conta</h2>
+            <div class="auth-tabs">
+              <button type="button" class="auth-tab active" id="loginTab">Entrar</button>
+              <button type="button" class="auth-tab" id="registerTab">Cadastrar</button>
+            </div>
+          </div>
+          <button class="modal-close" id="closeAuth">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="loginForm">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="loginEmail" required placeholder="seu@email.com" />
+            </div>
+            <div class="form-group">
+              <label>Senha</label>
+              <input type="password" id="loginPassword" required placeholder="********" />
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="cancel-btn close-auth">Cancelar</button>
+              <button type="submit" class="confirm-btn">Entrar</button>
+            </div>
+          </form>
+
+          <form id="registerForm" style="display:none;">
+            <div class="form-group">
+              <label>Nome completo</label>
+              <input type="text" id="registerName" required placeholder="Seu nome" />
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="registerEmail" required placeholder="seu@email.com" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Senha</label>
+                <input type="password" id="registerPassword" required placeholder="********" />
+              </div>
+              <div class="form-group">
+                <label>CPF</label>
+                <input type="text" id="registerCPF" required placeholder="000.000.000-00" maxlength="14" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Endereço</label>
+              <input type="text" id="registerAddress" required placeholder="Rua, número, bairro" />
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="cancel-btn close-auth">Cancelar</button>
+              <button type="submit" class="confirm-btn">Criar conta</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Carrinho -->
     <div class="cart-overlay" id="cartOverlay">
       <div class="cart-panel">
         <div class="cart-header">
-          <h3>Seu Carrinho</h3>
+          <div>
+            <h3>Seu Carrinho</h3>
+            <p class="cart-user" id="cartUserStatus">Faça login para finalizar a compra.</p>
+          </div>
           <button class="cart-close" id="closeCart">&times;</button>
         </div>
         <div class="cart-items" id="cartItems">
@@ -1200,89 +268,25 @@
           <button class="modal-close" id="closeCheckout">&times;</button>
         </div>
         <div class="modal-body" id="checkoutBody">
-          <!-- Resumo do pedido -->
-          <div class="order-summary" id="orderSummary"></div>
-
           <form id="checkoutForm">
-            <h3>Dados Pessoais</h3>
-            <div class="form-group">
-              <label>Nome Completo</label>
-              <input
-                type="text"
-                name="name"
-                required
-                placeholder="Seu nome completo"
-              />
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>E-mail</label>
-                <input
-                  type="email"
-                  name="email"
-                  required
-                  placeholder="seu@email.com"
-                />
+            <div class="account-panel">
+              <div class="checkout-note" id="checkoutStatus">
+                Faça login para continuar com o pedido.
               </div>
-              <div class="form-group">
-                <label>Telefone</label>
-                <input
-                  type="tel"
-                  name="phone"
-                  required
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
+              <div class="order-summary account-summary" id="orderSummary"></div>
             </div>
 
-            <h3 style="margin-top: 1rem">Endereco de Entrega</h3>
-            <div class="form-row">
-              <div class="form-group" style="flex: 0.5">
-                <label>CEP</label>
-                <input
-                  type="text"
-                  name="zip"
-                  required
-                  placeholder="00000-000"
-                  maxlength="9"
-                />
-              </div>
-            </div>
-            <div class="form-group">
-              <label>Endereco</label>
-              <input
-                type="text"
-                name="address"
-                required
-                placeholder="Rua, numero, complemento"
-              />
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>Cidade</label>
-                <input type="text" name="city" required />
-              </div>
-              <div class="form-group" style="flex: 0.3">
-                <label>Estado</label>
-                <input type="text" name="state" required maxlength="2" />
-              </div>
-            </div>
-
-            <h3 style="margin-top: 1rem">Pagamento</h3>
+            <h3>Pagamento</h3>
             <div class="payment-options" id="paymentOptions">
               <div class="payment-option selected" data-method="pix">
                 <div class="icon">&#9889;</div>
                 <div class="label">PIX</div>
-                <div style="font-size: 0.7rem; color: #888">
-                  Aprovacao instantanea
-                </div>
+                <div style="font-size: 0.7rem; color: #888">Aprovacao instantanea</div>
               </div>
               <div class="payment-option" data-method="boleto">
                 <div class="icon">&#128181;</div>
                 <div class="label">Boleto</div>
-                <div style="font-size: 0.7rem; color: #888">
-                  Ate 3 dias uteis
-                </div>
+                <div style="font-size: 0.7rem; color: #888">Ate 3 dias uteis</div>
               </div>
               <div class="payment-option" data-method="cartao">
                 <div class="icon">&#128179;</div>
@@ -1291,17 +295,10 @@
               </div>
             </div>
 
-            <!-- PIX Details (shown when PIX selected) -->
             <div id="pixDetails" style="display: none">
               <div class="pix-display">
                 <div class="pix-qr">&#128241;</div>
-                <div
-                  style="
-                    font-size: 0.9rem;
-                    font-weight: 600;
-                    margin-bottom: 0.5rem;
-                  "
-                >
+                <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">
                   Escaneie o QR Code ou copie o codigo
                 </div>
                 <div class="pix-code-box" id="pixCode">-</div>
@@ -1355,8 +352,8 @@
       let appliedCoupon = null;
       let shippingInfo = null;
       let currentPayment = "pix";
-      let currentQuiz = null;
       let currentSelection = null;
+      let currentUser = null;
 
       // ── Countdown ──
       let countdownSec = 2 * 60 * 60; // 2h
@@ -1459,7 +456,7 @@
           return;
         }
         grid.innerHTML = products
-          .map((p) => {
+          .map((p, index) => {
             const discount = Math.round((1 - p.price / p.original_price) * 100);
             const stars =
               "&#9733;".repeat(Math.floor(p.rating)) +
@@ -1473,7 +470,7 @@
                 : `Em estoque (${p.stock})`;
             const installment = (p.price / 3).toFixed(2).replace(".", ",");
             return `
-        <div class="product-card">
+        <div class="product-card animate-up" style="animation-delay:${index * 65}ms;">
           <div class="product-badges">
             <span class="badge badge-discount">-${discount}%</span>
             ${p.tags.includes("frete gratis") ? '<span class="badge badge-tag">Frete gratis</span>' : ""}
@@ -1508,77 +505,152 @@
         return v.toFixed(2).replace(".", ",");
       }
 
-      async function loadTip() {
-        try {
-          const res = await fetch(`${API}/api/tips`);
-          const data = await res.json();
-          document.getElementById("learningTip").textContent = data.tip;
-        } catch (err) {
-          document.getElementById("learningTip").textContent =
-            "Erro ao carregar dica. Tente novamente.";
-        }
-      }
+      const AUTH_TOKEN_KEY = "storeAuthToken";
 
-      async function loadQuiz() {
+      async function loadSession() {
+        const token = localStorage.getItem(AUTH_TOKEN_KEY);
+        if (!token) {
+          updateAccountUI();
+          return;
+        }
+
         try {
-          const res = await fetch(`${API}/api/quiz`);
-          const data = await res.json();
-          currentQuiz = data.question;
-          currentSelection = null;
-          document.getElementById("quizQuestion").textContent = currentQuiz.prompt;
-          const options = document.getElementById("quizOptions");
-          options.innerHTML = currentQuiz.options
-            .map(
-              (option, index) =>
-                `<div class="quiz-option" data-index="${index}">${option}</div>`,
-            )
-            .join("");
-          document.querySelectorAll(".quiz-option").forEach((opt) => {
-            opt.addEventListener("click", () => {
-              document
-                .querySelectorAll(".quiz-option")
-                .forEach((o) => o.classList.remove("selected"));
-              opt.classList.add("selected");
-              currentSelection = Number(opt.dataset.index);
-              document.getElementById("submitQuizBtn").style.display = "inline-block";
-              document.getElementById("quizFeedback").style.display = "none";
-            });
+          const res = await fetch(`${API}/api/me`, {
+            headers: { Authorization: `Bearer ${token}` },
           });
+          if (!res.ok) {
+            localStorage.removeItem(AUTH_TOKEN_KEY);
+            currentUser = null;
+            updateAccountUI();
+            return;
+          }
+          const data = await res.json();
+          currentUser = data.user;
+          updateAccountUI();
         } catch (err) {
-          document.getElementById("quizQuestion").textContent =
-            "Falha ao carregar o desafio. Recarregue a página.";
+          localStorage.removeItem(AUTH_TOKEN_KEY);
+          currentUser = null;
+          updateAccountUI();
         }
       }
 
-      async function submitQuiz() {
-        if (currentQuiz === null) {
-          showToast("Carregue um desafio antes de enviar.");
-          return;
+      function setCurrentUser(user, token) {
+        currentUser = user;
+        if (user && token) {
+          localStorage.setItem(AUTH_TOKEN_KEY, token);
+          showToast(`Bem-vindo, ${user.name.split(" ")[0]}!`);
+        } else {
+          localStorage.removeItem(AUTH_TOKEN_KEY);
         }
-        if (currentSelection === null) {
-          showToast("Selecione uma opção para responder.");
-          return;
-        }
+        updateAccountUI();
+      }
 
-        const res = await fetch(`${API}/api/quiz/answer`, {
+      function updateAccountUI() {
+        document.getElementById("accountBtn").textContent =
+          currentUser ? "Minha Conta" : "Entrar";
+        document.getElementById("cartUserStatus").textContent =
+          currentUser
+            ? `Logado como ${currentUser.name}`
+            : "Faça login para finalizar a compra.";
+        const statusEl = document.getElementById("checkoutStatus");
+        if (statusEl) {
+          statusEl.textContent = currentUser
+            ? `Pedido vinculado a ${currentUser.name}`
+            : "Você precisa estar logado para finalizar o pedido.";
+        }
+      }
+
+      function toggleAuthTab(tab) {
+        document.getElementById("loginTab").classList.toggle("active", tab === "login");
+        document.getElementById("registerTab").classList.toggle("active", tab === "register");
+        document.getElementById("loginForm").style.display = tab === "login" ? "" : "none";
+        document.getElementById("registerForm").style.display = tab === "register" ? "" : "none";
+      }
+
+      function showAuthModal(step = "login") {
+        toggleAuthTab(step);
+        document.getElementById("authModal").classList.add("open");
+      }
+
+      function hideAuthModal() {
+        document.getElementById("authModal").classList.remove("open");
+      }
+
+      document.getElementById("accountBtn").addEventListener("click", () => {
+        if (currentUser) {
+          showAuthModal("login");
+        } else {
+          showAuthModal("login");
+        }
+      });
+
+      document.getElementById("accountHeroBtn").addEventListener("click", () => {
+        if (currentUser) {
+          showToast(`Você já está logado como ${currentUser.name}`);
+        } else {
+          showAuthModal("login");
+        }
+      });
+
+      document.getElementById("closeAuth").addEventListener("click", hideAuthModal);
+      document.querySelectorAll(".close-auth").forEach((btn) => btn.addEventListener("click", hideAuthModal));
+      document.getElementById("authModal").addEventListener("click", (e) => {
+        if (e.target === document.getElementById("authModal")) hideAuthModal();
+      });
+      document.getElementById("loginTab").addEventListener("click", () => toggleAuthTab("login"));
+      document.getElementById("registerTab").addEventListener("click", () => toggleAuthTab("register"));
+
+      document.getElementById("loginForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = document.getElementById("loginEmail").value
+          .trim()
+          .toLowerCase();
+        const password = document.getElementById("loginPassword").value.trim();
+
+        const res = await fetch(`${API}/api/login`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            question_id: currentQuiz.id,
-            selected: currentSelection,
-          }),
+          body: JSON.stringify({ email, password }),
         });
         const data = await res.json();
-        const feedback = document.getElementById("quizFeedback");
-        feedback.style.display = "block";
-        feedback.className = "quiz-feedback " + (data.correct ? "correct" : "incorrect");
-        feedback.innerHTML = data.correct
-          ? `Correto! ${data.explanation}`
-          : `Ops! Resposta incorreta. ${data.explanation}`;
-      }
+        if (!res.ok) {
+          showToast(data.error || "Credenciais inválidas. Tente novamente.");
+          return;
+        }
 
-      document.getElementById("loadQuizBtn").addEventListener("click", loadQuiz);
-      document.getElementById("newTipBtn").addEventListener("click", loadTip);
+        setCurrentUser(data.user, data.token);
+        hideAuthModal();
+      });
+
+      document.getElementById("registerForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("registerName").value.trim();
+        const email = document.getElementById("registerEmail").value
+          .trim()
+          .toLowerCase();
+        const password = document.getElementById("registerPassword").value.trim();
+        const cpf = document.getElementById("registerCPF").value.trim();
+        const address = document.getElementById("registerAddress").value.trim();
+
+        if (!name || !email || !password || !cpf || !address) {
+          showToast("Preencha todos os campos para criar a conta.");
+          return;
+        }
+
+        const res = await fetch(`${API}/api/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password, cpf, address }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || "Falha ao criar conta. Tente novamente.");
+          return;
+        }
+
+        setCurrentUser(data.user, data.token);
+        hideAuthModal();
+      });
 
       // Search and sort
       document
@@ -1806,6 +878,10 @@
           showToast("Carrinho vazio!");
           return;
         }
+        if (!currentUser) {
+          showAuthModal("login");
+          return;
+        }
         document.getElementById("cartOverlay").classList.remove("open");
         buildOrderSummary();
         document.getElementById("checkoutModal").classList.add("open");
@@ -1830,6 +906,7 @@
         const el = document.getElementById("orderSummary");
         el.innerHTML = `
         <h4>Resumo do Pedido</h4>
+        ${currentUser ? `<div class="order-item"><span>Cliente</span><span>${currentUser.name}</span></div>` : ""}
         ${cart
           .map(
             (i) => `
@@ -1876,15 +953,27 @@
           const formData = new FormData(e.target);
 
           const body = {
-            customer: Object.fromEntries(formData),
+            customer: currentUser
+              ? {
+                  name: currentUser.name,
+                  email: currentUser.email,
+                  cpf: currentUser.cpf,
+                  address: currentUser.address,
+                }
+              : {},
             items: cart.map((c) => ({ id: c.id, qty: c.qty })),
             coupon: appliedCoupon ? appliedCoupon.code : "",
             payment: currentPayment,
           };
 
+          const token = localStorage.getItem(AUTH_TOKEN_KEY);
+          const headers = { "Content-Type": "application/json" };
+          if (token) {
+            headers.Authorization = `Bearer ${token}`;
+          }
           const res = await fetch(`${API}/api/orders`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers,
             body: JSON.stringify(body),
           });
           const data = await res.json();
@@ -1966,8 +1055,69 @@
         setTimeout(() => t.classList.remove("show"), 2500);
       }
 
+      function initScrollAnimations() {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (!entry.isIntersecting) return;
+              entry.target.classList.add("reveal-visible");
+              observer.unobserve(entry.target);
+            });
+          },
+          {
+            threshold: 0.12,
+          },
+        );
+
+        document.querySelectorAll(
+          ".animate-up, .section-title, .hero, .products-section, .info-section, .urgency-banner",
+        ).forEach((el) => observer.observe(el));
+      }
+
+      function bindHeroActions() {
+        document.getElementById("shopNowBtn").addEventListener("click", () => {
+          document.getElementById("products").scrollIntoView({ behavior: "smooth" });
+        });
+        document.getElementById("accountHeroBtn").addEventListener("click", () => {
+          if (currentUser) {
+            showToast(`Você já está logado como ${currentUser.name}`);
+          } else {
+            showAuthModal("login");
+          }
+        });
+      }
+
+      document.querySelectorAll('a[href^="#"]').forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          const target = document.querySelector(link.getAttribute("href"));
+          if (target) target.scrollIntoView({ behavior: "smooth" });
+        });
+      });
+
+      function applyTheme(theme) {
+        document.body.dataset.theme = theme;
+        localStorage.setItem("siteTheme", theme);
+        document.getElementById("themeToggle").textContent =
+          theme === "dark" ? "☀️" : "🌙";
+        document.getElementById("themeToggle").title =
+          theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro";
+      }
+
+      function initTheme() {
+        const saved = localStorage.getItem("siteTheme");
+        const theme = saved === "light" ? "light" : "dark";
+        applyTheme(theme);
+        document.getElementById("themeToggle").addEventListener("click", () => {
+          applyTheme(document.body.dataset.theme === "dark" ? "light" : "dark");
+        });
+      }
+
       loadProducts();
-      loadTip();
+      loadSession();
+      initScrollAnimations();
+      bindHeroActions();
+      initTheme();
     </script>
   </body>
 </html>

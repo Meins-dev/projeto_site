@@ -487,6 +487,50 @@ def calc_shipping(zip_code):
 ORDERS = []
 ORDER_COUNTER = 0
 ORDERS_FILE = os.path.join(BASE_DIR, "orders.json")
+USERS_FILE = os.path.join(BASE_DIR, "users.json")
+USERS = []
+SESSIONS = {}
+
+
+def hash_password(password):
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
+def verify_password(password, password_hash):
+    return hash_password(password) == password_hash
+
+
+def save_users():
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(USERS, f, indent=2, ensure_ascii=False)
+
+
+def load_users():
+    global USERS
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
+            USERS = json.load(f)
+    else:
+        USERS = []
+
+
+def generate_token():
+    return hashlib.sha256(os.urandom(32)).hexdigest()
+
+
+def get_auth_user(handler):
+    auth_header = handler.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1]
+    email = SESSIONS.get(token)
+    if not email:
+        return None
+    return next((u for u in USERS if u["email"] == email), None)
+
+
+def sanitize_user(user):
+    return {k: v for k, v in user.items() if k != "password_hash"}
 
 
 def save_orders():
@@ -502,6 +546,7 @@ def load_orders():
         ORDER_COUNTER = len(ORDERS)
 
 
+load_users()
 load_orders()
 
 
@@ -524,6 +569,14 @@ class StoreHandler(SimpleHTTPRequestHandler):
 
         if path == "/api/products":
             self._json({"products": PRODUCTS, "categories": CATEGORIES})
+            return
+
+        if path == "/api/me":
+            user = get_auth_user(self)
+            if not user:
+                self._json({"error": "Não autenticado"}, 401)
+                return
+            self._json({"user": sanitize_user(user)})
             return
 
         if path == "/api/shipping":
@@ -593,6 +646,58 @@ class StoreHandler(SimpleHTTPRequestHandler):
         global ORDER_COUNTER
         path = urlparse(self.path).path
 
+        if path == "/api/login":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length))
+            email = (body.get("email") or "").strip().lower()
+            password = body.get("password", "")
+            user = next((u for u in USERS if u["email"] == email), None)
+            if not user or not verify_password(password, user.get("password_hash", "")):
+                self._json({"error": "Credenciais inválidas"}, 401)
+                return
+            token = generate_token()
+            SESSIONS[token] = user["email"]
+            self._json({"token": token, "user": sanitize_user(user)})
+            return
+
+        if path == "/api/register":
+            length = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(length))
+            name = (body.get("name") or "").strip()
+            email = (body.get("email") or "").strip().lower()
+            password = body.get("password", "")
+            cpf = (body.get("cpf") or "").strip()
+            address = (body.get("address") or "").strip()
+
+            if not name or not email or not password or not cpf or not address:
+                self._json({"error": "Preencha todos os campos"}, 400)
+                return
+            if any(u["email"] == email for u in USERS):
+                self._json({"error": "E-mail já cadastrado"}, 400)
+                return
+
+            user = {
+                "name": name,
+                "email": email,
+                "password_hash": hash_password(password),
+                "cpf": cpf,
+                "address": address,
+            }
+            USERS.append(user)
+            save_users()
+            token = generate_token()
+            SESSIONS[token] = email
+            self._json({"token": token, "user": sanitize_user(user)}, 201)
+            return
+
+        if path == "/api/logout":
+            auth_header = self.headers.get("Authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header.split(" ", 1)[1]
+                SESSIONS.pop(token, None)
+            self._json({"message": "Logout efetuado"})
+            return
+
         if path == "/api/quiz/answer":
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length))
@@ -611,12 +716,25 @@ class StoreHandler(SimpleHTTPRequestHandler):
             return
 
         if path == "/api/orders":
+            user = get_auth_user(self)
+            if not user:
+                self._json({"error": "Autenticação necessária"}, 401)
+                return
+
             length = int(self.headers.get("Content-Length", 0))
             body = json.loads(self.rfile.read(length))
 
-            if not body or "customer" not in body or "items" not in body:
+            if not body or "items" not in body:
                 self._json({"error": "Dados inválidos"}, 400)
                 return
+
+            customer = {
+                "name": user["name"],
+                "email": user["email"],
+                "cpf": user.get("cpf", ""),
+                "address": user.get("address", ""),
+                "zip": body.get("customer", {}).get("zip", ""),
+            }
 
             # Valida itens
             items = []
@@ -651,7 +769,7 @@ class StoreHandler(SimpleHTTPRequestHandler):
                     coupon_applied = {**cp, "code": coupon_code}
 
             # Calcula frete
-            zip_code = body.get("customer", {}).get("zip", "")
+            zip_code = customer.get("zip", "")
             shipping_price, shipping_days, shipping_state = calc_shipping(zip_code)
             if subtotal_items >= FREE_SHIPPING_MIN:
                 shipping_price = 0
@@ -666,7 +784,7 @@ class StoreHandler(SimpleHTTPRequestHandler):
             ORDER_COUNTER += 1
             order = {
                 "id": ORDER_COUNTER,
-                "customer": body["customer"],
+                "customer": customer,
                 "items": body["items"],
                 "items_detail": [{
                     "id": i["id"],
@@ -714,7 +832,7 @@ class StoreHandler(SimpleHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.end_headers()
 
     def log_message(self, fmt, *args):

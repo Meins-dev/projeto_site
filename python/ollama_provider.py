@@ -1,18 +1,3 @@
-"""
-ollama_provider.py
-------------------
-Adds native Ollama support to openclaude.
-Lets Claude Code route requests to any locally-running Ollama model
-(llama3, mistral, codellama, phi3, qwen2, deepseek-coder, etc.)
-without needing an API key.
-
-Usage (.env):
-    PREFERRED_PROVIDER=ollama
-    OLLAMA_BASE_URL=http://localhost:11434
-    BIG_MODEL=codellama:34b
-    SMALL_MODEL=llama3:8b
-"""
-
 import httpx
 import logging
 import os

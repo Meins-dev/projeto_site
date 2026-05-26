@@ -1,0 +1,11 @@
+<svg width="120" height="120" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title>NovaShop</title>
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#d8b4fe"/>
+    </linearGradient>
+  </defs>
+  <rect width="120" height="120" rx="30" fill="url(#grad)"/>
+  <path d="M36 82V38h16c8.8 0 16 7.2 16 16 0 4.9-2 9.4-5.5 12.8C60.5 70.9 65 76 71 76h9v6H56c-11 0-20-9-20-20V38H36Zm2-32v22c0 6.6 5.4 12 12 12h11c-6.1 0-11-4.9-11-11 0-8.8 7.2-16 16-16h3V50h-3c-7.7 0-14 6.3-14 14 0 1.7.3 3.4.9 4.9-4.1-2.3-6.9-6.8-6.9-11.9 0-7.7 6.3-14 14-14h15V38H56c-6.6 0-12 5.4-12 12ZM76 80h10V40H76v40Z" fill="#fff"/>
+</svg>
