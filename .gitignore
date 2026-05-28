@@ -5,7 +5,9 @@ __pycache__/
 *.pyd
 *.so
 .venv/
-
+.env/
+venv/
+env/
 # Local SQLite and database files
 *.db
 *.sqlite3

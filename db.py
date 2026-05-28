@@ -4,12 +4,31 @@ from sqlalchemy import (
     create_engine, Column, Integer, String, Float, DateTime, Text, ForeignKey, JSON, Boolean, inspect, text
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "nshop.db")
-ENGINE = create_engine(f"sqlite:///{DB_PATH}", echo=False, future=True)
+
+# Suporta DATABASE_URL da nuvem (Render, Railway, etc.) ou usa SQLite localmente
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{os.path.join(BASE_DIR, 'nshop.db')}")
+
+# Ajuste para PostgreSQL (converte postgres:// para postgresql://)
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+ENGINE = create_engine(DATABASE_URL, echo=False, future=True)
 SessionLocal = sessionmaker(bind=ENGINE, autoflush=False, autocommit=False)
 Base = declarative_base()
+
+
+def get_db():
+    """Dependency para FastAPI."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
 class Product(Base):

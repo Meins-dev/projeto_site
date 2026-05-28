@@ -5,6 +5,7 @@ import hashlib
 import random
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
+from functools import wraps
 
 import db
 
@@ -639,54 +640,53 @@ def generate_pix_code():
 
 
 # ── Servidor ────────────────────────────────────────────────────────
-class StoreHandler(SimpleHTTPRequestHandler):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, directory=BASE_DIR, **kwargs)
+# --- Helpers de Autenticação (Refatorados) ---
 
-    def do_GET(self):
-        path = urlparse(self.path).path
+def require_auth(handler_func):
+    """Decorator para validar autenticação."""
+    @wraps(handler_func)
+    def wrapper(self, handler=None):
+        user = get_auth_user(self)
+        if not user:
+            return {"error": "Não autenticado"}, 401
+        return handler_func(self, user)
+    return wrapper
 
-        # Products list or single product
-        if path == "/api/products":
-            session = db.SessionLocal()
-            try:
-                prods = session.query(db.Product).all()
-                products = []
-                for p in prods:
-                    products.append({
-                        "id": p.id,
-                        "name": p.name,
-                        "description": p.description,
-                        "price": p.price,
-                        "original_price": p.original_price,
-                        "category": p.category,
-                        "emoji": p.emoji,
-                        "sold": p.sold,
-                        "rating": p.rating,
-                        "reviews": p.reviews,
-                        "stock": p.stock,
-                        "tags": p.tags or [],
-                    })
-                categories = sorted(set(p["category"] for p in products if p.get("category")))
-                self._json({"products": products, "categories": categories})
-                return
-            finally:
-                session.close()
 
-        if path.startswith("/api/products/"):
-            # get single product
-            try:
-                prod_id = int(path.split("/")[-1])
-            except ValueError:
-                self._json({"error": "ID inválido"}, 400)
-                return
-            session = db.SessionLocal()
-            try:
-                p = session.query(db.Product).get(prod_id)
-                if not p:
-                    self._json({"error": "Produto não encontrado"}, 404)
-                    return
-                self._json({
+def require_admin(handler_func):
+    """Decorator para validar admin."""
+    @wraps(handler_func)
+    def wrapper(self, handler=None):
+        user = get_auth_user(self)
+        if not user:
+            return {"error": "Não autenticado"}, 401
+        if not user.get("is_admin"):
+            return {"error": "Acesso negado"}, 403
+        return handler_func(self, user)
+    return wrapper
+
+
+def get_body(handler):
+    """Extrai e decodifica o corpo da requisição."""
+    try:
+        length = int(handler.headers.get("Content-Length", 0))
+        return json.loads(handler.rfile.read(length)) if length > 0 else {}
+    except (json.JSONDecodeError, ValueError):
+        return {}
+
+
+# --- Handlers de API (Lógica de Negócio) ---
+class StoreAPI:
+    """Classe para organizar a lógica da API separada do servidor HTTP"""
+
+    @staticmethod
+    def get_products(handler):
+        """Retorna lista de produtos com categorias."""
+        session = db.SessionLocal()
+        try:
+            prods = session.query(db.Product).all()
+            products = [
+                {
                     "id": p.id,
                     "name": p.name,
                     "description": p.description,
@@ -699,419 +699,654 @@ class StoreHandler(SimpleHTTPRequestHandler):
                     "reviews": p.reviews,
                     "stock": p.stock,
                     "tags": p.tags or [],
-                })
-                return
-            finally:
-                session.close()
+                }
+                for p in prods
+            ]
+            categories = sorted(set(p["category"] for p in products if p.get("category")))
+            return {"products": products, "categories": categories}
+        finally:
+            session.close()
 
+    @staticmethod
+    def get_product_detail(handler, prod_id):
+        """Retorna detalhes de um produto específico."""
+        session = db.SessionLocal()
+        try:
+            p = session.query(db.Product).get(prod_id)
+            if not p:
+                return {"error": "Produto não encontrado"}, 404
+            return {
+                "id": p.id,
+                "name": p.name,
+                "description": p.description,
+                "price": p.price,
+                "original_price": p.original_price,
+                "category": p.category,
+                "emoji": p.emoji,
+                "sold": p.sold,
+                "rating": p.rating,
+                "reviews": p.reviews,
+                "stock": p.stock,
+                "tags": p.tags or [],
+            }
+        finally:
+            session.close()
+
+    @staticmethod
+    def handle_login(handler):
+        """Autentica usuário e cria sessão."""
+        body = get_body(handler)
+        email = (body.get("email") or "").strip().lower()
+        password = body.get("password", "")
+
+        if not email or not password:
+            return {"error": "E-mail e senha são obrigatórios"}, 400
+
+        session_db = db.SessionLocal()
+        try:
+            user = session_db.query(db.User).filter_by(email=email).first()
+            if not user or not verify_password(password, user.password_hash):
+                return {"error": "Credenciais inválidas"}, 401
+
+            user_session = create_user_session(session_db, user)
+            return {
+                "access_token": user_session.access_token,
+                "refresh_token": user_session.refresh_token,
+                "user": sanitize_user(user),
+            }
+        finally:
+            session_db.close()
+
+    @staticmethod
+    def handle_register(handler):
+        """Registra novo usuário."""
+        body = get_body(handler)
+        name = (body.get("name") or "").strip()
+        email = (body.get("email") or "").strip().lower()
+        password = body.get("password", "")
+        cpf = (body.get("cpf") or "").strip()
+        address = (body.get("address") or "").strip()
+
+        if not all([name, email, password, cpf, address]):
+            return {"error": "Preencha todos os campos"}, 400
+
+        session_db = db.SessionLocal()
+        try:
+            if session_db.query(db.User).filter_by(email=email).first():
+                return {"error": "E-mail já cadastrado"}, 400
+
+            user = db.User(
+                name=name,
+                email=email,
+                password_hash=hash_password(password),
+                cpf=cpf,
+                address=address,
+            )
+            session_db.add(user)
+            session_db.commit()
+
+            user_session = create_user_session(session_db, user)
+            return (
+                {
+                    "access_token": user_session.access_token,
+                    "refresh_token": user_session.refresh_token,
+                    "user": sanitize_user(user),
+                },
+                201,
+            )
+        finally:
+            session_db.close()
+
+    @staticmethod
+    def handle_logout(handler):
+        """Revoga sessão do usuário."""
+        auth_header = handler.headers.get("Authorization", "")
+        token = None
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1]
+
+        if token:
+            session_db = db.SessionLocal()
+            try:
+                user_session = (
+                    session_db.query(db.UserSession)
+                    .filter_by(access_token=token, revoked=False)
+                    .first()
+                )
+                if user_session:
+                    user_session.revoked = True
+                    session_db.commit()
+            finally:
+                session_db.close()
+
+        return {"message": "Logout efetuado"}
+
+    @staticmethod
+    def handle_refresh(handler):
+        """Renova tokens de autenticação."""
+        body = get_body(handler)
+        refresh_token = body.get("refresh_token")
+
+        if not refresh_token:
+            return {"error": "Refresh token obrigatório"}, 400
+
+        session_db = db.SessionLocal()
+        try:
+            user_session = (
+                session_db.query(db.UserSession)
+                .filter_by(refresh_token=refresh_token, revoked=False)
+                .first()
+            )
+            if (
+                not user_session
+                or not user_session.refresh_expires_at
+                or user_session.refresh_expires_at < datetime.now()
+            ):
+                return {"error": "Token de atualização inválido"}, 401
+
+            user = user_session.user
+            if not user:
+                return {"error": "Token inválido"}, 401
+
+            user_session.revoked = True
+            session_db.commit()
+            new_session = create_user_session(session_db, user)
+
+            return {
+                "access_token": new_session.access_token,
+                "refresh_token": new_session.refresh_token,
+                "user": sanitize_user(user),
+            }
+        finally:
+            session_db.close()
+
+    @staticmethod
+    def handle_me(handler, user):
+        """Retorna dados do usuário autenticado."""
+        return {"user": sanitize_user(user)}
+
+    @staticmethod
+    def handle_shipping(handler):
+        """Calcula frete baseado no CEP."""
+        qs = parse_qs(urlparse(handler.path).query)
+        zip_code = qs.get("zip", [""])[0]
+        subtotal = float(qs.get("subtotal", ["0"])[0])
+
+        price, days, state = calc_shipping(zip_code)
+        free = subtotal >= FREE_SHIPPING_MIN
+
+        return {
+            "price": 0.0 if free else price,
+            "original_price": price,
+            "days": days,
+            "state": state,
+            "free_shipping_eligible": free,
+        }
+
+    @staticmethod
+    def handle_coupons(handler):
+        """Valida cupom de desconto."""
+        qs = parse_qs(urlparse(handler.path).query)
+        code = qs.get("code", [""])[0].upper()
+        subtotal = float(qs.get("subtotal", ["0"])[0])
+
+        if not code:
+            return {"valid": False, "message": "Cupom não informado"}
+
+        session = db.SessionLocal()
+        try:
+            cp = session.query(db.Coupon).filter_by(code=code).first()
+            if not cp:
+                return {"valid": False, "message": "Cupom inválido"}
+
+            if subtotal < cp.min_value:
+                return {
+                    "valid": False,
+                    "message": f"Compra mínima: R$ {cp.min_value:.2f}",
+                }
+
+            return {
+                "valid": True,
+                "coupon": {
+                    "code": cp.code,
+                    "discount": cp.discount,
+                    "type": cp.type,
+                    "min_value": cp.min_value,
+                    "label": cp.label,
+                },
+            }
+        finally:
+            session.close()
+
+    @staticmethod
+    def handle_tips(handler):
+        """Retorna uma dica de aprendizado aleatória."""
+        return {"tip": random.choice(LEARNING_TIPS)}
+
+    @staticmethod
+    def handle_quiz(handler):
+        """Retorna uma pergunta do quiz."""
+        question = random.choice(QUIZ_QUESTIONS)
+        return {
+            "question": {
+                "id": question["id"],
+                "prompt": question["prompt"],
+                "options": question["options"],
+            }
+        }
+
+    @staticmethod
+    def handle_quiz_answer(handler):
+        """Valida resposta do quiz."""
+        body = get_body(handler)
+        question_id = body.get("question_id")
+        selected = body.get("selected")
+
+        if question_id is None or selected is None:
+            return {"error": "Question ID e resposta são obrigatórios"}, 400
+
+        question = next((q for q in QUIZ_QUESTIONS if q["id"] == question_id), None)
+        if not question:
+            return {"error": "Pergunta não encontrada"}, 404
+
+        return {
+            "correct": selected == question["correct_index"],
+            "correct_index": question["correct_index"],
+            "explanation": question["explanation"],
+        }
+
+    @staticmethod
+    def get_order_detail(handler, order_id):
+        """Retorna detalhes de um pedido."""
+        session = db.SessionLocal()
+        try:
+            ord_obj = session.query(db.Order).get(order_id)
+            if not ord_obj:
+                return {"error": "Pedido não encontrado"}, 404
+
+            items = [
+                {
+                    "id": it.product_id,
+                    "name": it.name,
+                    "qty": it.qty,
+                    "price": it.price,
+                    "subtotal": it.subtotal,
+                }
+                for it in ord_obj.items
+            ]
+
+            return {
+                "id": ord_obj.id,
+                "customer": {
+                    "name": ord_obj.customer_name,
+                    "email": ord_obj.customer_email,
+                    "cpf": ord_obj.customer_cpf,
+                    "address": ord_obj.customer_address,
+                    "zip": ord_obj.customer_zip,
+                },
+                "items_detail": items,
+                "subtotal": ord_obj.subtotal,
+                "discount": ord_obj.discount,
+                "shipping": ord_obj.shipping,
+                "shipping_days": ord_obj.shipping_days,
+                "total": ord_obj.total,
+                "coupon": ord_obj.coupon_code,
+                "payment": ord_obj.payment,
+                "pix_code": ord_obj.pix_code,
+                "pix_expires_at": ord_obj.pix_expires_at.isoformat()
+                if ord_obj.pix_expires_at
+                else None,
+                "created_at": ord_obj.created_at.isoformat()
+                if ord_obj.created_at
+                else None,
+                "status": ord_obj.status,
+            }
+        finally:
+            session.close()
+
+    @staticmethod
+    def create_product(handler, user):
+        """Cria novo produto (admin)."""
+        body = get_body(handler)
+        session_db = db.SessionLocal()
+        try:
+            p = db.Product(
+                name=body.get("name"),
+                description=body.get("description"),
+                price=body.get("price", 0.0),
+                original_price=body.get("original_price"),
+                category=body.get("category"),
+                emoji=body.get("emoji"),
+                sold=body.get("sold", 0),
+                rating=body.get("rating", 0.0),
+                reviews=body.get("reviews", 0),
+                stock=body.get("stock", 0),
+                tags=body.get("tags", []),
+            )
+            session_db.add(p)
+            session_db.commit()
+            return {"id": p.id, "message": "Produto criado."}, 201
+        finally:
+            session_db.close()
+
+    @staticmethod
+    def update_product(handler, user, prod_id):
+        """Atualiza produto existente (admin)."""
+        body = get_body(handler)
+        session_db = db.SessionLocal()
+        try:
+            p = session_db.query(db.Product).get(prod_id)
+            if not p:
+                return {"error": "Produto não encontrado"}, 404
+
+            for k in (
+                "name",
+                "description",
+                "price",
+                "original_price",
+                "category",
+                "emoji",
+                "stock",
+                "tags",
+                "rating",
+                "reviews",
+                "sold",
+            ):
+                if k in body:
+                    setattr(p, k, body[k])
+
+            session_db.commit()
+            return {"id": p.id, "message": "Produto atualizado."}
+        finally:
+            session_db.close()
+
+    @staticmethod
+    def delete_product(handler, user, prod_id):
+        """Deleta produto (admin)."""
+        session_db = db.SessionLocal()
+        try:
+            p = session_db.query(db.Product).get(prod_id)
+            if not p:
+                return {"error": "Produto não encontrado"}, 404
+
+            session_db.delete(p)
+            session_db.commit()
+            return {"id": prod_id, "message": "Produto removido."}
+        finally:
+            session_db.close()
+
+    @staticmethod
+    def create_order(handler, user):
+        """Cria novo pedido."""
+        body = get_body(handler)
+
+        if not body or "items" not in body:
+            return {"error": "Dados inválidos"}, 400
+
+        session = db.SessionLocal()
+        try:
+            customer_zip = body.get("customer", {}).get("zip", "")
+
+            items = []
+            subtotal_items = 0
+            for item in body["items"]:
+                prod = session.query(db.Product).get(item["id"])
+                if not prod:
+                    return {"error": f"Produto {item['id']} não encontrado"}, 400
+
+                qty = item.get("qty", 1)
+                if qty > prod.stock:
+                    return {"error": f"Estoque insuficiente para {prod.name}"}, 400
+
+                subtotal = prod.price * qty
+                items.append({"product": prod, "qty": qty, "subtotal": subtotal})
+                subtotal_items += subtotal
+
+            # coupon
+            coupon_applied = None
+            discount = 0
+            coupon_code = body.get("coupon", "").upper()
+            if coupon_code:
+                cp = session.query(db.Coupon).filter_by(code=coupon_code).first()
+                if cp and subtotal_items >= cp.min_value:
+                    if cp.type == "percent":
+                        discount = subtotal_items * cp.discount / 100
+                    else:
+                        discount = cp.discount
+                    coupon_applied = cp.code
+
+            # shipping
+            shipping_price, shipping_days, shipping_state = calc_shipping(customer_zip)
+            if subtotal_items >= FREE_SHIPPING_MIN:
+                shipping_price = 0
+
+            total_final = subtotal_items - discount + shipping_price
+
+            # generate pix
+            pix_code = generate_pix_code()
+            pix_expires = datetime.now().replace(
+                minute=datetime.now().minute + 30
+            )
+
+            # create order
+            order_obj = db.Order(
+                customer_name=user["name"],
+                customer_email=user["email"],
+                customer_cpf=user.get("cpf", ""),
+                customer_address=user.get("address", ""),
+                customer_zip=customer_zip,
+                subtotal=round(subtotal_items, 2),
+                discount=round(discount, 2),
+                shipping=round(shipping_price, 2),
+                shipping_days=shipping_days,
+                total=round(total_final, 2),
+                coupon_code=coupon_applied,
+                payment=body.get("payment", "pix"),
+                pix_code=pix_code,
+                pix_expires_at=pix_expires,
+                created_at=datetime.now(),
+                status="pending_payment",
+            )
+            session.add(order_obj)
+            session.flush()
+
+            for it in items:
+                prod = it["product"]
+                oi = db.OrderItem(
+                    order=order_obj,
+                    product_id=prod.id,
+                    name=prod.name,
+                    qty=it["qty"],
+                    price=prod.price,
+                    subtotal=round(it["subtotal"], 2),
+                )
+                session.add(oi)
+                # update stock/sold
+                prod.stock = max(0, prod.stock - it["qty"])
+                prod.sold = (prod.sold or 0) + it["qty"]
+
+            session.commit()
+
+            return (
+                {
+                    "order_id": order_obj.id,
+                    "total": order_obj.total,
+                    "pix_code": pix_code,
+                    "pix_expires_at": order_obj.pix_expires_at.isoformat()
+                    if order_obj.pix_expires_at
+                    else None,
+                    "message": "Pedido criado! Aguardando pagamento.",
+                },
+                201,
+            )
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+
+class StoreHandler(SimpleHTTPRequestHandler):
+    """Handler HTTP com roteamento dinâmico."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=BASE_DIR, **kwargs)
+
+    def do_GET(self):
+        path = urlparse(self.path).path
+        query_params = parse_qs(urlparse(self.path).query)
+
+        # Mapa de rotas GET
+        routes = {
+            "/api/products": lambda: StoreAPI.get_products(self),
+            "/api/tips": lambda: StoreAPI.handle_tips(self),
+            "/api/quiz": lambda: StoreAPI.handle_quiz(self),
+            "/api/shipping": lambda: StoreAPI.handle_shipping(self),
+            "/api/coupons": lambda: StoreAPI.handle_coupons(self),
+        }
+
+        # Rota protegida: /api/me
         if path == "/api/me":
             user = get_auth_user(self)
             if not user:
-                self._json({"error": "Não autenticado"}, 401)
-                return
-            self._json({"user": sanitize_user(user)})
+                return self._json({"error": "Não autenticado"}, 401)
+            self._json(StoreAPI.handle_me(self, user))
             return
 
-        if path == "/api/shipping":
-            qs = parse_qs(urlparse(self.path).query)
-            zip_code = qs.get("zip", [""])[0]
-            subtotal = float(qs.get("subtotal", ["0"])[0])
-            price, days, state = calc_shipping(zip_code)
-            free = subtotal >= FREE_SHIPPING_MIN
-            self._json({
-                "price": 0.0 if free else price,
-                "original_price": price,
-                "days": days,
-                "state": state,
-                "free_shipping_eligible": free,
-            })
-            return
-
-        if path == "/api/coupons":
-            code = qs.get("code", [""])[0].upper()
-            subtotal = float(qs.get("subtotal", ["0"])[0])
-            session = db.SessionLocal()
+        # Rotas com parâmetro de ID
+        if path.startswith("/api/products/"):
             try:
-                cp = session.query(db.Coupon).filter_by(code=code).first()
-                if not cp:
-                    self._json({"valid": False, "message": "Cupom inválido"})
-                    return
-                if subtotal < cp.min_value:
-                    self._json({"valid": False, "message": f"Compra mínima: R$ {cp.min_value:.2f}"})
-                    return
-                self._json({"valid": True, "coupon": {"code": cp.code, "discount": cp.discount, "type": cp.type, "min_value": cp.min_value, "label": cp.label}})
+                prod_id = int(path.split("/")[-1])
+                result = StoreAPI.get_product_detail(self, prod_id)
+                data, status = (
+                    result if isinstance(result, tuple) else (result, 200)
+                )
+                self._json(data, status)
                 return
-            finally:
-                session.close()
-
-        if path == "/api/tips":
-            tip = random.choice(LEARNING_TIPS)
-            self._json({"tip": tip})
-            return
-
-        if path == "/api/quiz":
-            question = random.choice(QUIZ_QUESTIONS)
-            self._json({
-                "question": {
-                    "id": question["id"],
-                    "prompt": question["prompt"],
-                    "options": question["options"],
-                }
-            })
-            return
-
-        if path.startswith("/api/orders/"):
-            order_id = path.split("/")[-1]
-            try:
-                order_id = int(order_id)
             except ValueError:
                 self._json({"error": "ID inválido"}, 400)
                 return
-            session = db.SessionLocal()
+
+        if path.startswith("/api/orders/"):
             try:
-                ord_obj = session.query(db.Order).get(order_id)
-                if not ord_obj:
-                    self._json({"error": "Pedido não encontrado"}, 404)
-                    return
-                items = []
-                for it in ord_obj.items:
-                    items.append({"id": it.product_id, "name": it.name, "qty": it.qty, "price": it.price, "subtotal": it.subtotal})
-                self._json({
-                    "id": ord_obj.id,
-                    "customer": {
-                        "name": ord_obj.customer_name,
-                        "email": ord_obj.customer_email,
-                        "cpf": ord_obj.customer_cpf,
-                        "address": ord_obj.customer_address,
-                        "zip": ord_obj.customer_zip,
-                    },
-                    "items_detail": items,
-                    "subtotal": ord_obj.subtotal,
-                    "discount": ord_obj.discount,
-                    "shipping": ord_obj.shipping,
-                    "shipping_days": ord_obj.shipping_days,
-                    "total": ord_obj.total,
-                    "coupon": ord_obj.coupon_code,
-                    "payment": ord_obj.payment,
-                    "pix_code": ord_obj.pix_code,
-                    "pix_expires_at": ord_obj.pix_expires_at.isoformat() if ord_obj.pix_expires_at else None,
-                    "created_at": ord_obj.created_at.isoformat() if ord_obj.created_at else None,
-                    "status": ord_obj.status,
-                })
+                order_id = int(path.split("/")[-1])
+                result = StoreAPI.get_order_detail(self, order_id)
+                data, status = (
+                    result if isinstance(result, tuple) else (result, 200)
+                )
+                self._json(data, status)
                 return
-            finally:
-                session.close()
+            except ValueError:
+                self._json({"error": "ID inválido"}, 400)
+                return
+
+        # Rotas mapeadas
+        if path in routes:
+            result = routes[path]()
+            data, status = result if isinstance(result, tuple) else (result, 200)
+            self._json(data, status)
+            return
 
         super().do_GET()
 
     def do_POST(self):
-        global ORDER_COUNTER
         path = urlparse(self.path).path
 
-        if path == "/api/login":
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length))
-            email = (body.get("email") or "").strip().lower()
-            password = body.get("password", "")
-            session_db = db.SessionLocal()
-            try:
-                user = session_db.query(db.User).filter_by(email=email).first()
-                if not user or not verify_password(password, user.password_hash):
-                    self._json({"error": "Credenciais inválidas"}, 401)
-                    return
-                user_session = create_user_session(session_db, user)
-                self._json({
-                    "access_token": user_session.access_token,
-                    "refresh_token": user_session.refresh_token,
-                    "user": sanitize_user(user),
-                })
-                return
-            finally:
-                session_db.close()
+        # Rotas públicas
+        public_routes = {
+            "/api/login": StoreAPI.handle_login,
+            "/api/register": StoreAPI.handle_register,
+            "/api/refresh": StoreAPI.handle_refresh,
+        }
 
-        if path == "/api/register":
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length))
-            name = (body.get("name") or "").strip()
-            email = (body.get("email") or "").strip().lower()
-            password = body.get("password", "")
-            cpf = (body.get("cpf") or "").strip()
-            address = (body.get("address") or "").strip()
+        if path in public_routes:
+            result = public_routes[path](self)
+            data, status = result if isinstance(result, tuple) else (result, 200)
+            self._json(data, status)
+            return
 
-            if not name or not email or not password or not cpf or not address:
-                self._json({"error": "Preencha todos os campos"}, 400)
-                return
-            session_db = db.SessionLocal()
-            try:
-                if session_db.query(db.User).filter_by(email=email).first():
-                    self._json({"error": "E-mail já cadastrado"}, 400)
-                    return
-                user = db.User(name=name, email=email, password_hash=hash_password(password), cpf=cpf, address=address)
-                session_db.add(user)
-                session_db.commit()
-                user_session = create_user_session(session_db, user)
-                self._json({
-                    "access_token": user_session.access_token,
-                    "refresh_token": user_session.refresh_token,
-                    "user": sanitize_user(user),
-                }, 201)
-                return
-            finally:
-                session_db.close()
-
+        # Rota de logout (requer auth)
         if path == "/api/logout":
-            auth_header = self.headers.get("Authorization", "")
-            token = None
-            if auth_header.startswith("Bearer "):
-                token = auth_header.split(" ", 1)[1]
-            if token:
-                session_db = db.SessionLocal()
-                try:
-                    user_session = session_db.query(db.UserSession).filter_by(access_token=token, revoked=False).first()
-                    if user_session:
-                        user_session.revoked = True
-                        session_db.commit()
-                finally:
-                    session_db.close()
-            self._json({"message": "Logout efetuado"})
+            result = StoreAPI.handle_logout(self)
+            self._json(result)
             return
 
-        if path == "/api/refresh":
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length))
-            refresh_token = body.get("refresh_token")
-            session_db = db.SessionLocal()
-            try:
-                user_session = session_db.query(db.UserSession).filter_by(refresh_token=refresh_token, revoked=False).first()
-                if not user_session or not user_session.refresh_expires_at or user_session.refresh_expires_at < datetime.now():
-                    self._json({"error": "Token de atualização inválido"}, 401)
-                    return
-                user = user_session.user
-                if not user:
-                    self._json({"error": "Token inválido"}, 401)
-                    return
-                user_session.revoked = True
-                session_db.commit()
-                new_session = create_user_session(session_db, user)
-                self._json({
-                    "access_token": new_session.access_token,
-                    "refresh_token": new_session.refresh_token,
-                    "user": sanitize_user(user),
-                })
-                return
-            finally:
-                session_db.close()
-
+        # Rota de quiz answer (pública)
         if path == "/api/quiz/answer":
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length))
-            question_id = body.get("question_id")
-            selected = body.get("selected")
-            question = next((q for q in QUIZ_QUESTIONS if q["id"] == question_id), None)
-            if not question:
-                self._json({"error": "Pergunta não encontrada"}, 404)
-                return
-            correct = selected == question["correct_index"]
-            self._json({
-                "correct": correct,
-                "correct_index": question["correct_index"],
-                "explanation": question["explanation"],
-            })
+            result = StoreAPI.handle_quiz_answer(self)
+            data, status = result if isinstance(result, tuple) else (result, 200)
+            self._json(data, status)
             return
 
-        # Product CRUD endpoints
-        if path == "/api/products":
-            auth_user = get_auth_user(self)
-            if not auth_user:
+        # Rota de criar pedido (requer auth)
+        if path == "/api/orders":
+            user = get_auth_user(self)
+            if not user:
                 self._json({"error": "Autenticação necessária"}, 401)
                 return
-            if not auth_user.get("is_admin"):
+            result = StoreAPI.create_order(self, user)
+            data, status = result if isinstance(result, tuple) else (result, 200)
+            self._json(data, status)
+            return
+
+        # Rotas de admin
+        if path == "/api/products":
+            user = get_auth_user(self)
+            if not user:
+                self._json({"error": "Autenticação necessária"}, 401)
+                return
+            if not user.get("is_admin"):
                 self._json({"error": "Acesso negado"}, 403)
                 return
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length))
-            session_db = db.SessionLocal()
-            try:
-                p = db.Product(
-                    name=body.get("name"),
-                    description=body.get("description"),
-                    price=body.get("price", 0.0),
-                    original_price=body.get("original_price"),
-                    category=body.get("category"),
-                    emoji=body.get("emoji"),
-                    sold=body.get("sold", 0),
-                    rating=body.get("rating", 0.0),
-                    reviews=body.get("reviews", 0),
-                    stock=body.get("stock", 0),
-                    tags=body.get("tags", []),
-                )
-                session_db.add(p)
-                session_db.commit()
-                self._json({"id": p.id, "message": "Produto criado."}, 201)
-                return
-            finally:
-                session_db.close()
+            result = StoreAPI.create_product(self, user)
+            data, status = result if isinstance(result, tuple) else (result, 200)
+            self._json(data, status)
+            return
 
         if path.startswith("/api/products/") and path.endswith("/update"):
-            auth_user = get_auth_user(self)
-            if not auth_user:
+            user = get_auth_user(self)
+            if not user:
                 self._json({"error": "Autenticação necessária"}, 401)
                 return
-            if not auth_user.get("is_admin"):
+            if not user.get("is_admin"):
                 self._json({"error": "Acesso negado"}, 403)
                 return
             try:
                 prod_id = int(path.split("/")[-2])
+                result = StoreAPI.update_product(self, user, prod_id)
+                data, status = (
+                    result if isinstance(result, tuple) else (result, 200)
+                )
+                self._json(data, status)
+                return
             except ValueError:
                 self._json({"error": "ID inválido"}, 400)
                 return
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length))
-            session_db = db.SessionLocal()
-            try:
-                p = session_db.query(db.Product).get(prod_id)
-                if not p:
-                    self._json({"error": "Produto não encontrado"}, 404)
-                    return
-                for k in ("name", "description", "price", "original_price", "category", "emoji", "stock", "tags", "rating", "reviews", "sold"):
-                    if k in body:
-                        setattr(p, k, body[k])
-                session_db.commit()
-                self._json({"id": p.id, "message": "Produto atualizado."})
-                return
-            finally:
-                session_db.close()
 
         if path.startswith("/api/products/") and path.endswith("/delete"):
-            auth_user = get_auth_user(self)
-            if not auth_user:
+            user = get_auth_user(self)
+            if not user:
                 self._json({"error": "Autenticação necessária"}, 401)
                 return
-            if not auth_user.get("is_admin"):
+            if not user.get("is_admin"):
                 self._json({"error": "Acesso negado"}, 403)
                 return
             try:
                 prod_id = int(path.split("/")[-2])
+                result = StoreAPI.delete_product(self, user, prod_id)
+                data, status = (
+                    result if isinstance(result, tuple) else (result, 200)
+                )
+                self._json(data, status)
+                return
             except ValueError:
                 self._json({"error": "ID inválido"}, 400)
                 return
-            session_db = db.SessionLocal()
-            try:
-                p = session_db.query(db.Product).get(prod_id)
-                if not p:
-                    self._json({"error": "Produto não encontrado"}, 404)
-                    return
-                session_db.delete(p)
-                session_db.commit()
-                self._json({"id": prod_id, "message": "Produto removido."})
-                return
-            finally:
-                session_db.close()
-
-        if path == "/api/orders":
-            auth_user = get_auth_user(self)
-            if not auth_user:
-                self._json({"error": "Autenticação necessária"}, 401)
-                return
-
-            length = int(self.headers.get("Content-Length", 0))
-            body = json.loads(self.rfile.read(length))
-
-            if not body or "items" not in body:
-                self._json({"error": "Dados inválidos"}, 400)
-                return
-
-            session = db.SessionLocal()
-            try:
-                customer_zip = body.get("customer", {}).get("zip", "")
-
-                items = []
-                subtotal_items = 0
-                for item in body["items"]:
-                    prod = session.query(db.Product).get(item["id"])
-                    if not prod:
-                        self._json({"error": f"Produto {item['id']} não encontrado"}, 400)
-                        return
-                    qty = item.get("qty", 1)
-                    if qty > prod.stock:
-                        self._json({"error": f"Estoque insuficiente para {prod.name}"}, 400)
-                        return
-                    subtotal = prod.price * qty
-                    items.append({"product": prod, "qty": qty, "subtotal": subtotal})
-                    subtotal_items += subtotal
-
-                # coupon
-                coupon_applied = None
-                discount = 0
-                coupon_code = body.get("coupon", "").upper()
-                if coupon_code:
-                    cp = session.query(db.Coupon).filter_by(code=coupon_code).first()
-                    if cp and subtotal_items >= cp.min_value:
-                        if cp.type == "percent":
-                            discount = subtotal_items * cp.discount / 100
-                        else:
-                            discount = cp.discount
-                        coupon_applied = cp.code
-
-                # shipping
-                shipping_price, shipping_days, shipping_state = calc_shipping(customer_zip)
-                if subtotal_items >= FREE_SHIPPING_MIN:
-                    shipping_price = 0
-
-                total_final = subtotal_items - discount + shipping_price
-
-                # generate pix
-                pix_code = generate_pix_code()
-                pix_expires = datetime.now().replace(minute=datetime.now().minute + 30)
-
-                # create order
-                order_obj = db.Order(
-                    customer_name=auth_user["name"],
-                    customer_email=auth_user["email"],
-                    customer_cpf=auth_user.get("cpf", ""),
-                    customer_address=auth_user.get("address", ""),
-                    customer_zip=customer_zip,
-                    subtotal=round(subtotal_items, 2),
-                    discount=round(discount, 2),
-                    shipping=round(shipping_price, 2),
-                    shipping_days=shipping_days,
-                    total=round(total_final, 2),
-                    coupon_code=coupon_applied,
-                    payment=body.get("payment", "pix"),
-                    pix_code=pix_code,
-                    pix_expires_at=pix_expires,
-                    created_at=datetime.now(),
-                    status="pending_payment",
-                )
-                session.add(order_obj)
-                session.flush()
-                for it in items:
-                    prod = it["product"]
-                    oi = db.OrderItem(order=order_obj, product_id=prod.id, name=prod.name, qty=it["qty"], price=prod.price, subtotal=round(it["subtotal"], 2))
-                    session.add(oi)
-                    # update stock/sold
-                    prod.stock = max(0, prod.stock - it["qty"])
-                    prod.sold = (prod.sold or 0) + it["qty"]
-
-                session.commit()
-
-                self._json({
-                    "order_id": order_obj.id,
-                    "total": order_obj.total,
-                    "pix_code": pix_code,
-                    "pix_expires_at": order_obj.pix_expires_at.isoformat() if order_obj.pix_expires_at else None,
-                    "message": "Pedido criado! Aguardando pagamento.",
-                }, 201)
-                return
-            except Exception:
-                session.rollback()
-                raise
-            finally:
-                session.close()
 
         self.send_error(404)
 
     def _json(self, data, status=200):
+        """Centraliza a resposta JSON."""
         payload = json.dumps(data, ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -1121,6 +1356,7 @@ class StoreHandler(SimpleHTTPRequestHandler):
         self.wfile.write(payload)
 
     def do_OPTIONS(self):
+        """Manipula requisições OPTIONS para CORS."""
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -1128,9 +1364,9 @@ class StoreHandler(SimpleHTTPRequestHandler):
         self.end_headers()
 
     def log_message(self, fmt, *args):
+        """Log customizado com timestamp."""
         print(f"[{datetime.now().strftime('%H:%M:%S')}] {fmt % args}")
-
-
+        
 if __name__ == "__main__":
     port = 5000
     server = HTTPServer(("0.0.0.0", port), StoreHandler)
