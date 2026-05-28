@@ -130,8 +130,24 @@ nav {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.9rem;
+  gap: 0.6rem;
+}
+
+.search-brand {
+  display: inline-flex;
+  align-items: center;
   gap: 0.5rem;
+  padding-right: 0.75rem;
+  border-right: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.search-brand img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
 }
 
 .search-box input {
@@ -140,7 +156,7 @@ nav {
   outline: none;
   color: var(--text);
   font-size: 0.95rem;
-  width: 220px;
+  width: 200px;
 }
 
 .cart-btn,
@@ -1064,6 +1080,13 @@ nav {
   font-size: 4rem;
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 18px;
+  overflow: hidden;
+}
+
+.pix-qr img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .pix-code-box {

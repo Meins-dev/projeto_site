@@ -1,0 +1,21 @@
+# Python cache and virtual environment
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.venv/
+
+# Local SQLite and database files
+*.db
+*.sqlite3
+
+# Backup files
+*~
+*.bak
+
+# Netlify dev files
+.netlify/
+
+# IDE files
+.vscode/

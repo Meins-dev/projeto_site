@@ -21,6 +21,10 @@
         <li><a href="#contact">Contato</a></li>
       </ul>
       <div class="search-box">
+        <div class="search-brand">
+          <img src="logo.svg" alt="NovaShop" />
+          <span>NovaShop</span>
+        </div>
         <span>&#128269;</span>
         <input type="text" id="searchInput" placeholder="Buscar produtos..." />
       </div>
@@ -297,7 +301,9 @@
 
             <div id="pixDetails" style="display: none">
               <div class="pix-display">
-                <div class="pix-qr">&#128241;</div>
+                <div class="pix-qr">
+                  <img id="pixQrImage" src="" alt="QR Code PIX" />
+                </div>
                 <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 0.5rem;">
                   Escaneie o QR Code ou copie o codigo
                 </div>
@@ -345,7 +351,7 @@
     <div class="toast" id="toast"></div>
 
     <script>
-      const API = window.location.origin;
+      const API = "/.netlify/functions/store";
       let cart = [];
       let allProducts = [];
       let categories = [];
@@ -545,6 +551,30 @@
         updateAccountUI();
       }
 
+      function getPixQrUrl(code) {
+        return `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(code)}`;
+      }
+
+      function generatePixKey() {
+        const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const timestamp = Date.now().toString().slice(-6);
+        return `PIX-NOVASHOP-${timestamp}-${randomPart}`;
+      }
+
+      function renderPixDetails() {
+        const pixDetails = document.getElementById("pixDetails");
+        if (currentPayment !== "pix") {
+          pixDetails.style.display = "none";
+          return;
+        }
+
+        const pixCode = generatePixKey();
+        document.getElementById("pixCode").textContent = pixCode;
+        document.getElementById("pixQrImage").src = getPixQrUrl(pixCode);
+        document.getElementById("pixDetails").style.display = "";
+        document.getElementById("pixTimer").textContent = "Validade: 30 minutos";
+      }
+
       function updateAccountUI() {
         document.getElementById("accountBtn").textContent =
           currentUser ? "Minha Conta" : "Entrar";
@@ -618,7 +648,7 @@
           return;
         }
 
-        setCurrentUser(data.user, data.token);
+        setCurrentUser(data.user, data.access_token);
         hideAuthModal();
       });
 
@@ -648,7 +678,7 @@
           return;
         }
 
-        setCurrentUser(data.user, data.token);
+        setCurrentUser(data.user, data.access_token);
         hideAuthModal();
       });
 
@@ -884,6 +914,7 @@
         }
         document.getElementById("cartOverlay").classList.remove("open");
         buildOrderSummary();
+        renderPixDetails();
         document.getElementById("checkoutModal").classList.add("open");
       });
       document.getElementById("closeCheckout").addEventListener("click", () => {
@@ -936,8 +967,7 @@
             .forEach((o) => o.classList.remove("selected"));
           opt.classList.add("selected");
           currentPayment = opt.dataset.method;
-          document.getElementById("pixDetails").style.display =
-            currentPayment === "pix" ? "" : "none";
+          renderPixDetails();
         });
       });
 
@@ -995,7 +1025,9 @@
           if (data.pix_code) {
             document.getElementById("orderPixArea").innerHTML = `
           <div class="pix-display" style="margin-top:1rem;">
-            <div class="pix-qr">&#128241;</div>
+            <div class="pix-qr">
+              <img id="orderPixQrImage" src="${getPixQrUrl(data.pix_code)}" alt="QR Code PIX" />
+            </div>
             <div style="font-size:0.85rem;font-weight:600;margin-bottom:0.4rem;">Pague com PIX</div>
             <div class="pix-code-box" id="orderPixCode">${data.pix_code}</div>
             <button type="button" class="pix-copy" onclick="copyPixCode('orderPixCode')">Copiar Codigo PIX</button>
